@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;800&display=swap');
+
+:root {
+  --bg: #eef2fb;
+  --panel: #edf2fb;
+  --panel-strong: #f7f9fe;
+  --ink: #121826;
+  --ink-line: #111827;
+  --muted: #4b5563;
+  --danger: #c63b2f;
+  --success: #198754;
+  --font-body: 'Noto Sans SC', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  color: var(--ink);
+  background: radial-gradient(circle at top left, rgba(17, 24, 39, 0.05), transparent 28%), var(--bg);
+  font: 16px/1.6 var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
