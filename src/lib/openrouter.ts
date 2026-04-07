@@ -1104,7 +1104,7 @@ function assertValidOptimizeDraft(draft: unknown): asserts draft is OptimizeDraf
   }
 }
 
-async function sendChatCompletion(payload: Record<string, unknown>) {
+export async function sendChatCompletion(payload: Record<string, unknown>) {
   const apiKey = getApiKey()
 
   if (!apiKey) {
