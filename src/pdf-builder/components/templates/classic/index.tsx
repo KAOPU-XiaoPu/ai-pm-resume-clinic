@@ -6,13 +6,6 @@ interface TemplateProps {
   globalSettings: GlobalSettings
 }
 
-function photoBorderRadius(config: ResumeData['basicInfo']['photoConfig']): string {
-  if (config.borderRadius === 'full') return '50%'
-  if (config.borderRadius === 'medium') return '8px'
-  if (config.borderRadius === 'custom') return `${config.customBorderRadius}px`
-  return '0'
-}
-
 function renderSection(id: string, data: ResumeData, gs: GlobalSettings) {
   const gap = gs.sectionSpacing
   switch (id) {
