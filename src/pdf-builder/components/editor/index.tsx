@@ -1,0 +1,7 @@
+export { BasicInfoPanel } from './BasicInfoPanel'
+export { ExperiencePanel } from './ExperiencePanel'
+export { ProjectPanel } from './ProjectPanel'
+export { SkillPanel } from './SkillPanel'
+export { EducationPanel } from './EducationPanel'
+export { CertificatePanel } from './CertificatePanel'
+export { CustomSectionPanel } from './CustomSectionPanel'

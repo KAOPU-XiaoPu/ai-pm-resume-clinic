@@ -377,7 +377,7 @@ function buildSectionMetrics(markdown: string, sectionHints: SectionHint[]) {
 
   const personalInfoSignals = {
     hasName: /^[\u4e00-\u9fa5A-Za-z·\s]{2,24}$/.test(nameCandidate),
-    hasGender: /(^|[|｜\s])(男|女)(?=($|[|｜\s]))/.test(personalInfoContent),
+    hasGender: /(^|[|｜\s:：])(男|女)(?=($|[|｜\s:：,，]))/.test(personalInfoContent),
     hasPhone: /(?<!\d)(?:\+?86[-\s]?)?1[3-9]\d(?:[\s-]?\d){8,}(?!\d)/.test(personalInfoContent),
     hasEmail: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(personalInfoContent),
     hasEducation: /(本科|硕士|博士|研究生|大专|MBA|EMBA)/.test(personalInfoContent),

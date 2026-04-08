@@ -1,31 +1,81 @@
-import { useState, useCallback } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { ClassicTemplate } from '../pdf-builder/templates/ClassicTemplate'
-import { ModernTemplate } from '../pdf-builder/templates/ModernTemplate'
-import { TimelineTemplate } from '../pdf-builder/templates/TimelineTemplate'
-import { MinimalistTemplate } from '../pdf-builder/templates/MinimalistTemplate'
-import { sampleResumeData } from '../pdf-builder/sampleData'
-import { templates, colorSchemes, getColorScheme } from '../pdf-builder/lib/templateRegistry'
-import type { TemplateId, ColorScheme, PdfResumeData } from '../pdf-builder/types'
-import '../pdf-builder/templates/templateStyles.css'
+import { useState, useMemo } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { templateConfigs } from '../pdf-builder/components/templates/registry'
+import { sampleResumeData } from '../pdf-builder/config/initialResumeData'
+import type { ResumeData, GlobalSettings } from '../pdf-builder/types'
+
+import ClassicTemplate from '../pdf-builder/components/templates/classic'
+import ModernTemplate from '../pdf-builder/components/templates/modern'
+import LeftRightTemplate from '../pdf-builder/components/templates/left-right'
+import TimelineTemplate from '../pdf-builder/components/templates/timeline'
+import MinimalistTemplate from '../pdf-builder/components/templates/minimalist'
+import ElegantTemplate from '../pdf-builder/components/templates/elegant'
+import CreativeTemplate from '../pdf-builder/components/templates/creative'
+import EditorialTemplate from '../pdf-builder/components/templates/editorial'
 
 /* -------------------------------------------------------------------------- */
-/*  Template renderer helper                                                   */
+/*  Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-function renderTemplate(id: TemplateId, data: PdfResumeData, scheme: ColorScheme) {
-  switch (id) {
-    case 'classic':
-      return <ClassicTemplate data={data} colorScheme={scheme} />
-    case 'modern':
-      return <ModernTemplate data={data} colorScheme={scheme} />
-    case 'timeline':
-      return <TimelineTemplate data={data} colorScheme={scheme} />
-    case 'minimalist':
-      return <MinimalistTemplate data={data} colorScheme={scheme} />
-    default:
-      return <ClassicTemplate data={data} colorScheme={scheme} />
-  }
+type TemplateFC = React.FC<{ data: ResumeData; globalSettings: GlobalSettings }>
+
+const templateComponentMap: Record<string, TemplateFC> = {
+  classic: ClassicTemplate,
+  modern: ModernTemplate,
+  'left-right': LeftRightTemplate,
+  timeline: TimelineTemplate,
+  minimalist: MinimalistTemplate,
+  elegant: ElegantTemplate,
+  creative: CreativeTemplate,
+  editorial: EditorialTemplate,
+}
+
+const COLOR_SWATCHES = [
+  { color: '#1a1a1a', label: '黑色' },
+  { color: '#1e40af', label: '蓝色' },
+  { color: '#0d9488', label: '青色' },
+  { color: '#7c3aed', label: '紫色' },
+  { color: '#ea580c', label: '橙色' },
+  { color: '#64748b', label: '灰色' },
+]
+
+/* -------------------------------------------------------------------------- */
+/*  Confirm Dialog                                                             */
+/* -------------------------------------------------------------------------- */
+
+function ConfirmDialog({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          开始转换
+        </h3>
+        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+          即将使用AI将当前最新的在线简历内容转换为PDF简历格式，转换过程会自动优化排版结构。是否开始？
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            取消
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            开始转换
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 /* -------------------------------------------------------------------------- */
@@ -34,31 +84,118 @@ function renderTemplate(id: TemplateId, data: PdfResumeData, scheme: ColorScheme
 
 function PreviewModal({
   templateId,
-  colorScheme,
+  themeColor,
   onClose,
-  onUse,
 }: {
-  templateId: TemplateId
-  colorScheme: ColorScheme
+  templateId: string
+  themeColor: string
   onClose: () => void
-  onUse: () => void
 }) {
+  const Component = templateComponentMap[templateId]
+  const previewData = useMemo<ResumeData>(
+    () => ({
+      ...sampleResumeData,
+      globalSettings: { ...sampleResumeData.globalSettings, themeColor },
+    }),
+    [themeColor],
+  )
+
+  if (!Component) return null
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <button style={styles.modalClose} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/5 text-gray-500 hover:bg-black/10 hover:text-gray-700 transition-colors text-xl leading-none"
+        >
           &times;
         </button>
-        <div style={styles.modalBody}>
-          <div style={styles.modalPreviewWrap}>
-            {renderTemplate(templateId, sampleResumeData, colorScheme)}
+        <div className="flex-1 overflow-auto p-6 flex justify-center">
+          <div style={{ transform: 'scale(0.6)', transformOrigin: 'top center' }}>
+            <Component data={previewData} globalSettings={previewData.globalSettings} />
           </div>
         </div>
-        <div style={styles.modalFooter}>
-          <button style={styles.btnSecondary} onClick={onClose}>
+        <div className="flex justify-end gap-2 px-6 py-3 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             关闭
           </button>
-          <button style={styles.btnPrimary} onClick={onUse}>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Template Card                                                              */
+/* -------------------------------------------------------------------------- */
+
+function TemplateCard({
+  id,
+  name,
+  description,
+  themeColor,
+  onPreview,
+  onUse,
+}: {
+  id: string
+  name: string
+  description: string
+  themeColor: string
+  onPreview: () => void
+  onUse: () => void
+}) {
+  const Component = templateComponentMap[id]
+  const previewData = useMemo<ResumeData>(
+    () => ({
+      ...sampleResumeData,
+      globalSettings: { ...sampleResumeData.globalSettings, themeColor },
+    }),
+    [themeColor],
+  )
+
+  if (!Component) return null
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+      {/* Scaled-down preview */}
+      <div className="relative w-full h-[320px] overflow-hidden bg-gray-50 border-b border-gray-100">
+        <div
+          className="absolute left-1/2 pointer-events-none"
+          style={{
+            top: '8px',
+            transform: 'translateX(-50%) scale(0.36)',
+            transformOrigin: 'top center',
+          }}
+        >
+          <Component data={previewData} globalSettings={previewData.globalSettings} />
+        </div>
+      </div>
+
+      {/* Info + actions */}
+      <div className="p-4">
+        <h3 className="text-base font-semibold text-gray-900 mb-1">{name}</h3>
+        <p className="text-xs text-gray-500 mb-3 leading-relaxed">{description}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={onPreview}
+            className="px-4 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            预览
+          </button>
+          <button
+            onClick={onUse}
+            className="px-4 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors"
+          >
             使用此模板
           </button>
         </div>
@@ -74,298 +211,99 @@ function PreviewModal({
 export default function TemplateLibraryPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const markdown = (location.state as { markdown?: string })?.markdown ?? ''
+  const markdown = (location.state as { markdown?: string } | null)?.markdown ?? ''
 
-  const [colorSchemeId, setColorSchemeId] = useState('dark')
-  const [previewId, setPreviewId] = useState<TemplateId | null>(null)
+  const [themeColor, setThemeColor] = useState('#1a1a1a')
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const [confirmTemplateId, setConfirmTemplateId] = useState<string | null>(null)
 
-  const activeScheme = getColorScheme(colorSchemeId)
+  /* Navigate to editor after confirm */
+  const handleConfirmUse = () => {
+    if (!confirmTemplateId) return
+    navigate('/editor', {
+      state: { markdown, templateId: confirmTemplateId, themeColor },
+    })
+  }
 
-  const handleUseTemplate = useCallback(
-    (templateId: TemplateId) => {
-      navigate('/editor', {
-        state: { markdown, templateId, colorSchemeId },
-      })
-    },
-    [navigate, markdown, colorSchemeId],
-  )
+  /* No markdown guard */
+  if (!markdown) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <p className="text-gray-500 text-sm">请先从首页进入</p>
+        <Link
+          to="/"
+          className="text-sm text-blue-600 hover:text-blue-700 underline"
+        >
+          返回首页
+        </Link>
+      </div>
+    )
+  }
 
   return (
-    <div style={styles.page}>
+    <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
-      <div style={styles.topBar}>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>
-          &larr; 返回
+      <div className="sticky top-0 z-50 flex items-center gap-4 px-6 py-3 bg-white border-b border-gray-200">
+        <button
+          onClick={() => navigate('/')}
+          className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        >
+          &larr; 返回首页
         </button>
-        <h1 style={styles.pageTitle}>选择模板</h1>
-        <div style={styles.colorPicker}>
-          {colorSchemes.map((scheme) => (
+        <h1 className="text-lg font-semibold text-gray-900 flex-1">选择模板</h1>
+        <div className="flex items-center gap-2">
+          {COLOR_SWATCHES.map((s) => (
             <button
-              key={scheme.id}
-              title={scheme.name}
+              key={s.color}
+              title={s.label}
+              onClick={() => setThemeColor(s.color)}
+              className="w-6 h-6 rounded-full border-2 transition-all shrink-0"
               style={{
-                ...styles.colorDot,
-                background: scheme.primary,
+                backgroundColor: s.color,
+                borderColor: themeColor === s.color ? s.color : 'transparent',
                 boxShadow:
-                  scheme.id === colorSchemeId
-                    ? `0 0 0 2px #fff, 0 0 0 4px ${scheme.primary}`
+                  themeColor === s.color
+                    ? `0 0 0 2px #fff, 0 0 0 4px ${s.color}`
                     : 'none',
               }}
-              onClick={() => setColorSchemeId(scheme.id)}
             />
           ))}
         </div>
       </div>
 
       {/* Template grid */}
-      <div style={styles.grid}>
-        {templates.map((tpl) => (
-          <div key={tpl.id} style={styles.card}>
-            <div style={styles.cardPreview}>
-              <div style={styles.cardPreviewInner}>
-                {renderTemplate(tpl.id, sampleResumeData, activeScheme)}
-              </div>
-            </div>
-            <div style={styles.cardInfo}>
-              <h3 style={styles.cardName}>{tpl.name}</h3>
-              <p style={styles.cardDesc}>{tpl.description}</p>
-              <div style={styles.cardActions}>
-                <button
-                  style={styles.btnOutline}
-                  onClick={() => setPreviewId(tpl.id)}
-                >
-                  预览
-                </button>
-                <button
-                  style={styles.btnPrimary}
-                  onClick={() => handleUseTemplate(tpl.id)}
-                >
-                  使用此模板
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {templateConfigs.map((tpl) => (
+            <TemplateCard
+              key={tpl.id}
+              id={tpl.id}
+              name={tpl.name}
+              description={tpl.description}
+              themeColor={themeColor}
+              onPreview={() => setPreviewId(tpl.id)}
+              onUse={() => setConfirmTemplateId(tpl.id)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Preview modal */}
-      {previewId ? (
+      {previewId && (
         <PreviewModal
           templateId={previewId}
-          colorScheme={activeScheme}
+          themeColor={themeColor}
           onClose={() => setPreviewId(null)}
-          onUse={() => {
-            setPreviewId(null)
-            handleUseTemplate(previewId)
-          }}
         />
-      ) : null}
+      )}
+
+      {/* Confirm dialog */}
+      {confirmTemplateId && (
+        <ConfirmDialog
+          onConfirm={handleConfirmUse}
+          onCancel={() => setConfirmTemplateId(null)}
+        />
+      )}
     </div>
   )
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Styles                                                                     */
-/* -------------------------------------------------------------------------- */
-
-const styles: Record<string, React.CSSProperties> = {
-  /* Page */
-  page: {
-    minHeight: '100vh',
-    background: '#f0f2f5',
-    padding: '0 0 40px 0',
-    fontFamily: "'Noto Sans SC', 'PingFang SC', sans-serif",
-  },
-
-  /* Top bar */
-  topBar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '16px 24px',
-    background: '#fff',
-    borderBottom: '1px solid #e5e7eb',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  backBtn: {
-    background: 'none',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    padding: '6px 14px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    color: '#374151',
-    fontFamily: "'Noto Sans SC', sans-serif",
-  },
-  pageTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#111827',
-    margin: 0,
-    flex: 1,
-  },
-  colorPicker: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  colorDot: {
-    width: '24px',
-    height: '24px',
-    borderRadius: '50%',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'box-shadow 0.15s',
-    padding: 0,
-  },
-
-  /* Grid */
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-    gap: '24px',
-    padding: '24px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-
-  /* Card */
-  card: {
-    background: '#fff',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
-    transition: 'box-shadow 0.2s',
-  },
-  cardPreview: {
-    position: 'relative',
-    width: '100%',
-    height: '320px',
-    overflow: 'hidden',
-    background: '#fafafa',
-    borderBottom: '1px solid #f3f4f6',
-  },
-  cardPreviewInner: {
-    position: 'absolute',
-    top: '8px',
-    left: '50%',
-    transform: 'translateX(-50%) scale(0.38)',
-    transformOrigin: 'top center',
-    pointerEvents: 'none',
-  },
-  cardInfo: {
-    padding: '16px 20px 20px',
-  },
-  cardName: {
-    fontSize: '16px',
-    fontWeight: 600,
-    color: '#111827',
-    margin: '0 0 4px 0',
-  },
-  cardDesc: {
-    fontSize: '13px',
-    color: '#6b7280',
-    margin: '0 0 12px 0',
-    lineHeight: 1.4,
-  },
-  cardActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-
-  /* Buttons */
-  btnPrimary: {
-    padding: '7px 18px',
-    fontSize: '13px',
-    fontWeight: 500,
-    color: '#fff',
-    background: '#111827',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontFamily: "'Noto Sans SC', sans-serif",
-  },
-  btnSecondary: {
-    padding: '7px 18px',
-    fontSize: '13px',
-    fontWeight: 500,
-    color: '#374151',
-    background: '#f3f4f6',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontFamily: "'Noto Sans SC', sans-serif",
-  },
-  btnOutline: {
-    padding: '7px 18px',
-    fontSize: '13px',
-    fontWeight: 500,
-    color: '#374151',
-    background: '#fff',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontFamily: "'Noto Sans SC', sans-serif",
-  },
-
-  /* Modal */
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '24px',
-  },
-  modal: {
-    position: 'relative',
-    background: '#fff',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '680px',
-    maxHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-  },
-  modalClose: {
-    position: 'absolute',
-    top: '12px',
-    right: '12px',
-    width: '32px',
-    height: '32px',
-    background: 'rgba(0,0,0,0.06)',
-    border: 'none',
-    borderRadius: '50%',
-    fontSize: '20px',
-    lineHeight: '32px',
-    textAlign: 'center',
-    cursor: 'pointer',
-    color: '#6b7280',
-    zIndex: 10,
-    padding: 0,
-  },
-  modalBody: {
-    flex: 1,
-    overflow: 'auto',
-    padding: '24px',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  modalPreviewWrap: {
-    transform: 'scale(0.6)',
-    transformOrigin: 'top center',
-  },
-  modalFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '8px',
-    padding: '12px 24px',
-    borderTop: '1px solid #e5e7eb',
-  },
 }
